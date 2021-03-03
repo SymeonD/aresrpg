@@ -7,11 +7,18 @@ import { PLAYER_ENTITY_ID, PLAYER_INVENTORY_ID } from '../index.js'
 
 import { write_title } from './title.js'
 import { set_world_border } from './world_border.js'
+import { write_chat_msg } from './chat.js'
 
 export default {
   observe({ client, events, world }) {
     events.once('state', (state) => {
-      const { game_mode, position, inventory, view_distance } = state
+      const {
+        game_mode,
+        position,
+        inventory,
+        view_distance,
+        first_time,
+      } = state
       // TODO: move this elsewhere
       const world_names = ['minecraft:overworld']
       // TODO: we should not take the first world of the list
@@ -72,6 +79,23 @@ export default {
         fadeOut: 2,
         stay: 10,
       })
+
+      if (first_time) {
+        write_chat_msg(
+          { world },
+          {
+            message: JSON.stringify([
+              {
+                text: ' Première connexion pour ' + client.username + ' sur',
+                color: 'light_purple',
+              },
+              { text: ' AresRPG!', color: 'dark_green' },
+            ]),
+            client,
+          }
+        )
+        // first time is const i can't change his value
+      }
     })
   },
 }

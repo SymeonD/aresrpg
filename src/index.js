@@ -73,6 +73,7 @@ const initial_state = {
   game_mode: 2,
   experience: 0,
   health: 40,
+  first_time: true,
 }
 
 function reduce_state(state, action) {
