@@ -28,6 +28,7 @@ import player_deal_damage, {
   DAMAGE_INDICATORS_AMMOUNT,
   register as player_deal_damage_register,
 } from './player/deal_damage.js'
+import player_dig from './player/player_dig.js'
 import player_inventory from './player/inventory.js'
 import plugin_channels from './plugin_channels.js'
 import chunk_update from './chunk/update.js'
@@ -157,6 +158,7 @@ async function observe_client(context) {
   player_chat.observe(context)
   player_screen.observe(context)
   player_deal_damage.observe(context)
+  player_dig.observe(context)
   player_inventory.observe(context)
 
   commands_declare.observe(context)
