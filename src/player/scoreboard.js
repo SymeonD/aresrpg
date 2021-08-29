@@ -1,123 +1,115 @@
-import { update_sidebar } from '../scoreboard/sidebar.js'
-import {
-  create_animation,
-  AnimationDirection,
-} from '../scoreboard/animations.js'
-import { ChatColor } from '../scoreboard/enums.js'
+import { on } from 'events'
+
+import { aiter } from 'iterator-helper'
+
+import update_sidebar_for from '../scoreboard/update_sidebar.js'
+import { abortable } from '../iterator.js'
+import package_json from '../../package.json'
+
+import { experience_to_level, level_progress } from './experience.js'
+const SCOREBOARD_NAME = 'aresrpg'
+const CREATE_OBJECTIVE_ACTION = 0
+const INTEGER_TYPE = 0
+const SIDEBAR_POSITION = 1
+const PROGRESS_SQUARES_CHAR = '▀'
+const PROGRESS_SQUARES_AMOUNT = 12
+const KARES_FORMATER = Intl.NumberFormat('en', { notation: 'compact' })
+const Slots = {
+  EMPTY_GROUP_SLOT: { color: 'gray', text: '-' },
+  CLASS: ({ name, level, progress }) => [
+    { text: `${name}`, color: 'white', bold: true },
+    { text: ' [Lvl ', color: 'gray' },
+    { text: `${level}`, color: 'dark_green', reset: false },
+    { text: '] (', color: 'gray' },
+    { text: `${progress}`, color: 'green' },
+    { text: '%', color: 'white' },
+    { text: ')', color: 'gray' },
+  ],
+
+  PROGRESS: ({ progress }) => {
+    const amount = (PROGRESS_SQUARES_AMOUNT * progress) / 100
+    return [
+      { color: 'green', text: PROGRESS_SQUARES_CHAR.repeat(amount) },
+      {
+        color: 'dark_gray',
+        text: PROGRESS_SQUARES_CHAR.repeat(PROGRESS_SQUARES_AMOUNT - amount),
+      },
+    ]
+  },
+  SOUL: ({ soul }) => [
+    { text: 'Ame: ', color: 'gray' },
+    { text: `${soul}`, color: 'light_purple' },
+    { text: '%', color: 'white' },
+  ],
+  KARES: ({ kares }) => {
+    const formatted = KARES_FORMATER.formatToParts(kares).map(
+      ({ value }) => value
+    )
+    const amount = formatted.slice(0, -1).join('')
+    const compact = formatted.at(-1)
+    return [
+      { text: 'kAres: ', color: 'gray' },
+      { text: `${amount}`, color: 'gold' },
+      { text: `${compact}`, color: 'white' },
+    ]
+  },
+}
 
 export default {
-  observe({ client, events }) {
-    events.once('state', () => {
-      const scoreboard = {
-        title: { color: 'gold', text: 'Statistiques' },
-        lines: [
-          { text: '' },
-          [
-            { color: 'white', text: 'Classe ' },
-            { color: 'gray', text: ': ' },
-            { color: 'dark_blue', text: 'Barbare' },
-          ],
-          [
-            { color: 'white', text: 'Spé ' },
-            { color: 'gray', text: ': ' },
-            { color: 'yellow', text: 'Aucune' },
-          ],
-          [
-            { color: 'white', text: 'Lvl.' },
-            { color: 'dark_green', text: '1 ' },
-            { color: 'gray', text: '(' },
-            { color: 'dark_aqua', text: '4%' },
-            { color: 'gray', text: ')' },
-          ],
-          [
-            { color: 'white', text: 'Ame ' },
-            { color: 'gray', text: ': ' },
-            { color: 'green', text: '100' },
-            { color: 'gray', text: '%' },
-          ],
-          { text: '' },
-          [
-            { color: 'white', text: 'Crit ' },
-            { color: 'gray', text: ': ' },
-            { color: 'dark_red', text: 'Bientôt', italic: true },
-          ],
-          [
-            { color: 'white', text: 'Chance ' },
-            { color: 'gray', text: ': ' },
-            { color: 'dark_red', text: 'Bientôt', italic: true },
-          ],
-          { text: '' },
-          [
-            { color: 'white', text: 'Métiers ' },
-            { color: 'dark_red', text: 'Bientôt', italic: true },
-          ],
-          [
-            { color: 'gray', text: '- ' },
-            { color: 'green', text: 'Aucun' },
-          ],
-          { text: '' },
-          [
-            { color: 'white', text: 'Or ' },
-            { color: 'gray', text: ': ' },
-            { color: 'dark_red', text: 'Bientôt', italic: true },
-          ],
-          { text: '' },
-          { text: 'www.aresrpg.fr' },
-        ],
-      }
+  /** @type {import('../index.js').Observer} */
+  observe({ events, dispatch, signal, client, get_state }) {
+    const update_sidebar = update_sidebar_for({
+      client,
+      scoreboard_name: SCOREBOARD_NAME,
+    })
 
-      update_sidebar({ client }, { last: {}, next: scoreboard })
+    events.once('state', (state) => {
+      client.write('scoreboard_objective', {
+        name: SCOREBOARD_NAME,
+        action: CREATE_OBJECTIVE_ACTION,
+        displayText: JSON.stringify([
+          { text: 'Ares', color: 'gold' },
+          { text: 'RPG ', bold: true },
+          { text: '[', color: 'gray' },
+          { text: `v${package_json.version}`, italic: true },
+          { text: ']', reset: true, color: 'gray' },
+        ]),
+        type: INTEGER_TYPE,
+      })
 
-      const animation = create_animation(
-        { client },
-        {
-          boardState: scoreboard,
-          line: 'title',
-          animations: [
-            {
-              effects: [ChatColor.DARK_RED, ChatColor.DARK_RED],
-              delay: 75,
-              transitionDelay: 0,
-              direction: AnimationDirection.RIGHT,
-              maxLoop: 2,
-            },
-            {
-              effects: [ChatColor.DARK_RED],
-              delay: 75,
-              transitionDelay: 15000,
-              direction: AnimationDirection.BLINK,
-              maxLoop: 6,
-            },
-          ],
-        }
-      )
-
-      const animation2 = create_animation(
-        { client },
-        {
-          boardState: scoreboard,
-          line: 1,
-          animations: [
-            {
-              effect: [],
-              delay: 150,
-              transitionDelay: 10000,
-              direction: AnimationDirection.WRITE,
-              maxLoop: 1,
-            },
-          ],
-        }
-      )
-
-      setTimeout(() => {
-        animation.start()
-        animation2.start()
-      }, 3000)
-
-      client.on('end', () => {
-        animation.reset()
-        animation2.reset()
+      client.write('scoreboard_display_objective', {
+        name: SCOREBOARD_NAME,
+        position: SIDEBAR_POSITION,
       })
     })
+
+    aiter(abortable(on(events, 'state', { signal }))).reduce(
+      (last, [{ experience }]) => {
+        const { level, remaining_experience } = experience_to_level(experience)
+        const progress = level_progress({ level, remaining_experience })
+        const next = Array.from({
+          length: 15,
+          14: '',
+          13: Slots.CLASS({ name: 'Sram', level, progress }),
+          12: Slots.PROGRESS({ progress }),
+          11: Slots.SOUL({ soul: 100 }),
+          10: Slots.KARES({ kares: 0 }),
+          9: '',
+          8: { color: 'gray', underline: true, text: 'Groupe:' },
+          7: Slots.EMPTY_GROUP_SLOT,
+          6: Slots.EMPTY_GROUP_SLOT,
+          5: Slots.EMPTY_GROUP_SLOT,
+          4: Slots.EMPTY_GROUP_SLOT,
+          3: Slots.EMPTY_GROUP_SLOT,
+          2: Slots.EMPTY_GROUP_SLOT,
+          1: '',
+          0: { italic: true, text: '   www.aresrpg.fr   ' },
+        })
+
+        update_sidebar({ last, next })
+        return next
+      },
+      []
+    )
   },
 }
