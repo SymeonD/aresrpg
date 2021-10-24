@@ -296,7 +296,7 @@ export async function create_context(client) {
     })
   }
 
-  /** @type {NodeJS.EventEmitter} */
+  /** @type {import('./types').TypedEmitter<{ state: State }>} */
   const events = new EventEmitter()
   const player_state = await Database.pull(client.uuid.toLowerCase())
 
