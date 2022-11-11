@@ -11,6 +11,9 @@ import player_login from './player/login.js'
 import player_experience, {
   register as register_experience,
 } from './player/experience.js'
+import player_projectiles, {
+  register as register_projectiles,
+} from './player/launch_projectiles.js'
 import player_attributes from './player/attributes.js'
 import player_health from './player/health.js'
 import player_fall_damage from './player/fall_damage.js'
@@ -93,6 +96,7 @@ const world_reducers = [
   register_experience,
   register_player_teleportation_stones,
   register_player_item_loot,
+  register_projectiles,
 ]
 
 const world = /** @type {World} */ (
@@ -112,6 +116,7 @@ const initial_state = {
     36: { type: 'spellbook', count: 1 },
     37: { type: 'bronze_coin', count: 10 },
     38: { type: 'menitrass_100', count: 1 },
+    39: { type: 'basic_bow', count: 1 },
   }),
   looted_items: {
     pool: Array.from({ length: ITEM_LOOT_MAX_COUNT }),
@@ -266,6 +271,7 @@ export async function observe_client(context) {
   player_bossbar.observe(context)
   player_respawn.observe(context)
   player_heartbeat.observe(context)
+  player_projectiles.observe(context)
 
   commands_declare.observe(context)
 
