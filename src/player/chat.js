@@ -6,8 +6,9 @@ import logger from '../logger.js'
 import execute_command from '../commands/commands.js'
 import { VERSION } from '../settings.js'
 import { world_chat_msg } from '../chat.js'
-import { World } from '../events.js'
+import { WorldRequest } from '../events.js'
 import items from '../../data/items.json' assert { type: 'json' }
+import emotes from '../../data/emotes.json' assert { type: 'json' }
 
 import { closest_stone } from './teleportation_stones.js'
 const mcData = minecraftData(VERSION)
@@ -32,6 +33,28 @@ function slot_to_chat({ nbtData, itemCount, itemId }) {
     },
   }
   return chat
+}
+
+function emote_to_chat(emote) {
+  const emote_name = emote.slice(1, -1)
+
+  if (!emotes.includes(emote_name)) {
+    return { text: emote }
+  }
+
+  return {
+    translate: `aresrpg.emotes.${emote_name}`,
+    font: 'aresrpg:emotes',
+    hoverEvent: {
+      action: 'show_text',
+      value: emote,
+    },
+    with: [
+      {
+        text: emote_name,
+      },
+    ],
+  }
 }
 
 export default {
@@ -71,11 +94,10 @@ export default {
         }
         return chat
       },
+      [/:.*:/.source]: emote_to_chat, // all emotes name are between ":"
     }
 
-    client.on('chat', packet => {
-      const { message } = packet
-
+    client.on('chat', ({ message }) => {
       if (is_command_function(message)) {
         log.info({ sender: client.uuid, command: message }, 'Command')
         execute_command({ world, message, sender: client, get_state, dispatch })
@@ -113,12 +135,12 @@ export default {
       if (receiver_username === client.username) client.write('chat', options)
     }
 
-    world.events.on(World.CHAT, on_chat)
-    world.events.on(World.PRIVATE_MESSAGE, on_private_message)
+    world.events.on(WorldRequest.SEND_CHAT_MESSAGE, on_chat)
+    world.events.on(WorldRequest.PRIVATE_MESSAGE, on_private_message)
 
     client.once('end', () => {
-      world.events.off(World.CHAT, on_chat)
-      world.events.off(World.PRIVATE_MESSAGE, on_private_message)
+      world.events.off(WorldRequest.SEND_CHAT_MESSAGE, on_chat)
+      world.events.off(WorldRequest.PRIVATE_MESSAGE, on_private_message)
     })
   },
 }

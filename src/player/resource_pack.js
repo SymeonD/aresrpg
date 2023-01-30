@@ -1,6 +1,7 @@
 import { once } from 'events'
 
 import logger from '../logger.js'
+import { RESOURCE_PACK_URI, RESOURCE_PACK_HASH } from '../settings.js'
 
 const log = logger(import.meta)
 
@@ -15,8 +16,8 @@ export default {
   /** @type {import('../context.js').Observer} */
   async observe({ client }) {
     client.write('resource_pack_send', {
-      url: 'https://github.com/aresrpg/resourcepacks/releases/download/v1.0.1/addon.zip',
-      hash: '428224b7fc5a20c0ce4f12a27862ecd60aed9bda',
+      url: RESOURCE_PACK_URI,
+      hash: RESOURCE_PACK_HASH,
     })
 
     client.on('resource_pack_receive', ({ result }) => {

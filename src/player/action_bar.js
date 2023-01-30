@@ -4,7 +4,7 @@ import { setInterval } from 'timers/promises'
 import { aiter } from 'iterator-helper'
 
 import { Formats, to_hex, to_rgb } from '../chat.js'
-import { Context } from '../events.js'
+import { PlayerEvent } from '../events.js'
 import { abortable } from '../iterator.js'
 import {
   get_max_health,
@@ -57,19 +57,17 @@ export default {
   observe({ client, get_state, world, events, signal }) {
     aiter(abortable(setInterval(2000, null, { signal }))).forEach(() => {
       const state = get_state()
-      const closest_zone =
-        closest_stone(world, state.position)?.name ?? 'Wilderness'
       if (state)
         update_action_bar({
           client,
           health: state.health,
           max_health: get_max_health(state),
           remaining_stats_point: get_remaining_stats_point(state),
-          zone: closest_zone,
+          zone: closest_stone(world, state.position)?.name ?? 'Wilderness',
         })
     })
 
-    aiter(abortable(on(events, Context.STATE, { signal }))).reduce(
+    aiter(abortable(on(events, PlayerEvent.STATE_UPDATED, { signal }))).reduce(
       (
         { last_health, last_max_health, last_remaining_stats_point },
         [state]
