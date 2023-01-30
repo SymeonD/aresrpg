@@ -1,32 +1,26 @@
 import UUID from 'uuid-1345'
-import minecraftData from 'minecraft-data'
-
-import { VERSION } from '../settings.js'
-import { to_metadata } from '../entity_metadata.js'
-import { direction_to_yaw_pitch, to_direction, distance3d_squared } from '../math.js'
-import { Context, MobAction } from '../events.js'
-import Items from '../../data/items.json' assert { type: 'json' }
-import logger from '../logger.js'
-import combineAsyncIterators from 'combine-async-iterators'
-
-import { get_block } from '../chunk.js'
-import { setInterval as interval} from 'timers/promises'
-
-import Entities from '../../data/entities.json' assert { type: 'json' }
-import { aiter } from 'iterator-helper'
 import { abortable } from '../iterator.js'
+import { setInterval as interval} from 'timers/promises'
 import { on } from 'events'
+import { aiter } from 'iterator-helper'
+import combineAsyncIterators from 'combine-async-iterators'
+import Items from '../../data/items.json' assert { type: 'json' }
+import { Context, MobAction } from '../events.js'
+import { direction_to_yaw_pitch, distance3d_squared, to_direction } from '../math.js'
+import logger from '../logger.js'
+import Entities from '../../data/entities.json' assert { type: 'json' }
+import { get_block } from '../chunk.js'
 
-const mcData = minecraftData(VERSION)
 const log = logger(import.meta)
-
-const ARROW_AMOUNT = 50
-const ARROW_LIFE_TIME = 3000
 const visible_mobs = {}
+
 const HOTBAR_OFFSET = 36
 const Hand = {
   MAINHAND: 0,
 }
+
+const ARROW_AMOUNT = 50
+const ARROW_LIFE_TIME = 3000
 
 /** @param {import('../context.js').InitialWorld} world */
 export function register({ next_entity_id, ...world }) {
@@ -59,62 +53,9 @@ async function get_path_collision(world, position, velocity, steps) {
   return {x: 255, y: 255, z: 255}
 }
 
-const launchable = {
-  arrow: {
-    entityId: null,
-    type: mcData.entitiesByName.arrow.id,
-    position: { x: 0, y: 0, z: 0 },
-    metadata_values: to_metadata('arrow', {
-      // color: 0,
-      abstract_arrow_flags: {
-        is_critical: true,
-      },
-      entity_flags: {
-        // has_glowing_effect: true,
-      },
-      // custom_name: JSON.stringify({ text: 'Arrow', color: 'white' }),
-      // is_custom_name_visible: true,
-    }),
-  },
-}
-
-function launch_item(client, { x, y, z }, yaw, pitch, launchable, get_state, world) {
-  const { entityId, type, metadata_values } = launchable
-  // https://minecraft-data.prismarine.js.org/?d=protocol&v=1.16.4#toClient_spawn_entity
-  const arrow = {
-    entityId,
-    objectUUID: UUID.v4(),
-    type,
-    position: { x, y, z },
-    objectData: {
-      owner_id: get_state().entity_id,
-    },
-  }
-
-  // https://wiki.vg/Entity_metadata#Entity
-  const metadata = {
-    entityId,
-    metadata: metadata_values,
-  }
-
-  // Multiply the direction by the speed
-  const speed = 10000 // TODO: Find optimal value
-  const direction = to_direction(yaw, pitch)
-  const velocity = {
-    entityId,
-    velocityX: direction.x * speed,
-    velocityY: direction.y * speed,
-    velocityZ: direction.z * speed,
-  }
-
-  client.write('spawn_entity', arrow)
-  client.write('entity_metadata', metadata)
-  client.write('entity_velocity', velocity)
-}
-
 export default {
   /** @type {import('../context.js').Observer} */
-  observe({ client, events, get_state, world, signal }) {
+  observe({ client, get_state, signal, dispatch, events, world }) {
     aiter(
       abortable(
         // @ts-ignore
@@ -145,11 +86,6 @@ export default {
           const { arrow_start_id } = world
           const delta = 0.05
           const cursor = (last_cursor + 1) % ARROW_AMOUNT
-
-          // const arrow = launchable.arrow
-          // const { x, y, z, yaw, pitch } = get_state().position // Get player position
-          // launch_item(client, { x, y, z }, yaw, pitch, arrow, get_state, world) //Launch the arrow
-
           const arrow = {
             entityId: arrow_start_id + cursor,
             objectUUID: UUID.v4(),
@@ -161,26 +97,21 @@ export default {
             ...arrow,
             type: 2,
             ...position,
-          })
-          client.write('entity_velocity', {
-            entityId: arrow.entityId,
+            ...direction_to_yaw_pitch(to_direction(position.yaw, position.pitch)),
             velocityX: velocity.x,
             velocityY: velocity.y,
             velocityZ: velocity.z,
-            })
-
+          })
           let t = 0
           const interval = setInterval(() => {
             const step = Math.round(t/delta)
             if (t > ARROW_LIFE_TIME/1000) {
               clearInterval(interval)
             } else {
-              // Get the position of the arrow
               const cur_pos = {
                 ...arrow.position,
                 ...get_pos(arrow.position, velocity, step)
               }
-              // Get the block the arrow is in
               const dif = {
                 x: arrow.position.x - cur_pos.x,
                 y: arrow.position.y - cur_pos.y,
@@ -194,19 +125,15 @@ export default {
                 client.write('spawn_entity', {
                   ...arrow,
                   type: 2,
-                  ...position,
-                })
-                client.write('entity_velocity', {
-                  entityId: arrow.entityId,
+                  ...cur_pos,
+                  ...direction_to_yaw_pitch(to_direction(position.yaw, position.pitch)),
                   velocityX: velocity.x,
                   velocityY: velocity.y,
                   velocityZ: velocity.z,
-                  })
+                })
                 clearInterval(interval)
                 return
               }
-
-              // Hit detection
               Object.values(visible_mobs).forEach((mob) => {
                 if (mob.health === 0) return 
                 const mob_pos = mob.position()
@@ -244,7 +171,6 @@ export default {
             }
             t += delta
           }, 50)
-
           return {
             cursor,
             ids: [
@@ -289,79 +215,6 @@ export default {
           }
         }
       }
-    })
-  }
+    }
+  )}
 }
-
-
-// export default {
-//   /** @type {import('../context').Observer} */
-//   observe({ client, world, get_state, events }) {
-//     //Launch an arrow when the player right click
-//     client.on('use_item', ({ hand }) => {
-//       // Get the item in the player's hand
-//       const item = get_state().inventory[get_state().held_slot_index + 36]
-
-//       // Get the player's position
-//       const { x, y, z, yaw, pitch } = get_state().position
-//       if (item && items[item.type] && items[item.type].item === 'bow') {
-//         const { arrow } = launchable
-
-//         launch_item(client, { x, y, z }, yaw, pitch, arrow, get_state, world) // Shoot the arrow
-
-//         //TODO: Make the player "use" the bow to enable the cooldown
-//         client.write('set_cooldown', {
-//           itemID: mcData.itemsByName.bow.id, //https://minecraft-data.prismarine.js.org/?v=1.16.4&d=items
-//           cooldownTicks: 20,
-//           })
-
-//         console.log(arrow, 'arrow')
-
-//         // client.write('entity_status', {
-//         //   entityId: get_state().entity_id,
-//         //   entityStatus: 9,
-//         // })
-//       }
-//     })
-
-//     client.on('block_dig', (params) => {
-//         console.log(params, 'params')
-//         if (params.status === BlockDigStatus.SHOOT_ARROW) {
-//             console.log("Shoot arrow")
-//             // const item = get_state().inventory[get_state().held_slot_index + 36]
-
-//             const { x, y, z, yaw, pitch } = get_state().position
-//             const { arrow } = launchable
-//             launch_item(client, { x, y, z }, yaw, pitch, arrow, get_state, world) // Shoot the arrow
-
-//             // // Get the player's position
-//             // const { x, y, z, yaw, pitch } = get_state().position
-//             // if (item && items[item.type] && items[item.type].item === 'bow') {
-//             //     const { arrow } = launchable
-
-//             //     launch_item(client, { x, y, z }, yaw, pitch, arrow) // Shoot the arrow
-//             // }
-//         }
-//     })
-
-//     // // Run and or jump
-//     // client.on('entity_action', ({ entityId, actionId, jumpBoost }) => {
-//     //   console.log(entityId, actionId, jumpBoost)
-//     // })
-
-//     // Log the player infos
-//     client.on('player_info', (params) => {
-//       console.log(params)
-//     })
-
-//     events.on(Context.MOB_SPAWNED, ({ mob }) => {
-//       const { category } = Entities[mob?.type] ?? {}
-//       if (category !== 'npc')
-//         visible_mobs[mob.entity_id] = mob
-//     })
-//     events.on(Context.MOB_DESPAWNED, ({ entity_id }) => {
-//       if (entity_id in visible_mobs)
-//         delete visible_mobs[entity_id]
-//     })
-//   },
-// }
