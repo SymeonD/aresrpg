@@ -5,6 +5,15 @@ import { VERSION } from './settings.js'
 const mcData = minecraftData(VERSION)
 
 const Types = {
+  // Quick fix
+  sword: {
+    name: 'Arme',
+    color: 'white',
+  },
+  bow: {
+    name: 'Arme',
+    color: 'white',
+  },
   equipment: {
     name: 'Equipement',
     color: 'white',
@@ -83,6 +92,23 @@ const Stats = {
   intelligence: {
     text: [" d'", 'Intelligence'],
     color: 'dark_red',
+  },
+  // quick fix
+  mind: {
+    text: [" d'", 'Intelligence'],
+    color: 'dark_red',
+  },
+  chance: {
+    text: [' de ', 'Chance'],
+    color: 'dark_green',
+  },
+  reach: {
+    text: [' de ', 'Portée'],
+    color: 'dark_aqua',
+  },
+  haste: {
+    text: [' de ', 'Hâte'],
+    color: 'yellow',
   },
 }
 

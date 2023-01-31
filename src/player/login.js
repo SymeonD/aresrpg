@@ -14,10 +14,6 @@ import mdata from 'minecraft-data'
 import { VERSION } from '../settings.js'
 const mcData = mdata(VERSION)
 
-import mdata from 'minecraft-data'
-import { VERSION } from '../settings.js'
-const mcData = mdata(VERSION)
-
 export default {
   /** @type {import('../context.js').Observer} */
   observe({ client, events, world, signal, dispatch }) {

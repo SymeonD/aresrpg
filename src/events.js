@@ -24,6 +24,10 @@ export const PlayerAction = {
   SWITCH_GAMEMODE: 'PLAYER:ACTION:SWITCH_GAMEMODE',
   /** the player should receive experience */
   RECEIVE_EXPERIENCE: 'PLAYER:ACTION:RECEIVE_EXPERIENCE',
+  /** the player should receive a new item */
+  RECEIVE_ITEM: 'PLAYER:ACTION:RECEIVE_ITEM',
+  /** the player should shoot an arrow */
+  SHOOT_ARROW: 'PLAYER:ACTION:SHOOT_ARROW',
 }
 
 export const PlayerEvent = {
