@@ -8,6 +8,7 @@ const mcData = minecraftData(VERSION)
 
 // Arrow entity
 const ARROW_AMOUNT = 10
+let ARROW_CURSOR = 0
 
 // Register the arrows in the world entities list
 /** @param {import('../context.js').InitialWorld} world */
@@ -29,6 +30,7 @@ export default {
         // Get the player position
         const { x, y, z, yaw, pitch } = get_state().position
 
+        // Get the arrow velocity
         const velocity = {
           x: to_direction(yaw, pitch).x * 10000,
           y: to_direction(yaw, pitch).y * 10000,
@@ -37,7 +39,9 @@ export default {
 
         // Create the arrow entity
         const arrow = {
-          entityId: world.arrow_start_id,
+          // Entity ID is the arrow start ID + the arrow cursor, then increment the arrow cursor
+          // The cursor cannot be higher than the arrow amount
+          entityId: world.arrow_start_id + (ARROW_CURSOR++ % ARROW_AMOUNT),
           objectUUID: UUID.v4(),
           type: mcData.entitiesByName.arrow.id,
           x,
@@ -46,16 +50,12 @@ export default {
         }
 
         // Send the arrow entity to the client
-        try {
-          launch_entity({
-            client,
-            entity: arrow,
-            velocity,
-            position: { yaw, pitch },
-          })
-        } catch (err) {
-          console.log(err)
-        }
+        launch_entity({
+          client,
+          entity: arrow,
+          velocity,
+          position: { yaw, pitch },
+        })
       }
     )
   },
